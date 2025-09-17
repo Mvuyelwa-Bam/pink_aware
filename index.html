@@ -35,14 +35,27 @@
             width: 150px;
             height: 150px;
             border-radius: 50%;
-            display: grid;
-            place-items: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .progress-circle-text {
+        .progress-circle::after {
+            content: '';
             position: absolute;
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #DB2777;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: white;
+        }
+        .progress-circle-inner-text {
+            position: relative;
+            z-index: 10;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
         }
         .chat-user-button {
             transition: transform 0.2s, box-shadow 0.2s;
@@ -52,1102 +65,659 @@
             transform: scale(1.05);
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        .modal-overlay {
-            background-color: rgba(0, 0, 0, 0.5);
-        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-100 min-h-screen flex flex-col">
 
-    <!-- Header -->
-    <header class="sticky top-0 left-0 w-full bg-white bg-opacity-95 backdrop-blur-md z-50 shadow-lg">
-        <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-            <!-- Logo and Title -->
-            <a href="#" onclick="setCurrentPage('dashboard')" class="flex items-center space-x-3 transition-transform duration-300 hover:scale-105">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-pink-600"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                <span class="text-2xl font-bold text-gray-800 tracking-tight">Pink Aware</span>
+    <!-- Navigation Bar -->
+    <nav class="bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg p-4 sticky top-0 z-50">
+        <div class="container mx-auto flex items-center justify-between">
+            <a href="#" onclick="setCurrentPage('dashboard')" class="flex items-center space-x-2">
+                <div class="h-8 w-8 rounded-full bg-white flex items-center justify-center text-pink-600 font-bold hidden md:block">PA</div>
+                <span class="text-xl font-bold text-white">PINK AWARE</span>
             </a>
             
-            <!-- Desktop Navigation -->
-            <nav id="nav-links" class="hidden md:flex items-center space-x-2">
-                <button onclick="setCurrentPage('dashboard')" class="text-gray-700 hover:text-pink-600 font-medium transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-pink-500">Dashboard</button>
-                <button onclick="setCurrentPage('resources')" class="text-gray-700 hover:text-pink-600 font-medium transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-pink-500">Resources</button>
-                <button onclick="setCurrentPage('tasks')" class="text-gray-700 hover:text-pink-600 font-medium transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-pink-500">Tasks</button>
-                <button onclick="setCurrentPage('calendar')" class="text-gray-700 hover:text-pink-600 font-medium transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-pink-500">Calendar</button>
-                <button onclick="setCurrentPage('chat')" class="text-gray-700 hover:text-pink-600 font-medium transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-pink-500">Chat</button>
-            </nav>
-
-            <!-- User Info and Auth Buttons -->
-            <div class="flex items-center space-x-4">
-                <span id="user-id-display" class="hidden text-xs text-gray-500 font-mono bg-gray-100 p-2 rounded-lg"></span>
-                <button id="login-button" onclick="setCurrentPage('login')" class="bg-pink-600 text-white font-semibold py-2 px-4 rounded-full shadow-md hover:bg-pink-700 transition-all duration-300 transform active:scale-95">Log In</button>
-                <button id="logout-button" onclick="handleLogout()" class="hidden bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-full shadow-md hover:bg-gray-300 transition-all duration-300 transform active:scale-95">Log Out</button>
-            </div>
-
-            <!-- Mobile Menu Button -->
-            <button id="mobile-menu-button" class="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors duration-300">
-                <svg id="menu-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-                <svg id="close-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x hidden"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
-        </div>
-        
-        <!-- Mobile Menu Flyout -->
-        <div id="mobile-menu" class="hidden md:hidden fixed top-0 left-0 w-full h-screen bg-white bg-opacity-95 backdrop-blur-md z-40 p-4 transform transition-transform duration-300 ease-in-out -translate-x-full">
-            <nav id="mobile-nav-links" class="flex flex-col items-center justify-center h-full space-y-4">
-                <button onclick="setCurrentPage('dashboard'); closeMobileMenu();" class="text-gray-700 hover:text-pink-600 font-semibold text-xl py-2 px-4">Dashboard</button>
-                <button onclick="setCurrentPage('resources'); closeMobileMenu();" class="text-gray-700 hover:text-pink-600 font-semibold text-xl py-2 px-4">Resources</button>
-                <button onclick="setCurrentPage('tasks'); closeMobileMenu();" class="text-gray-700 hover:text-pink-600 font-semibold text-xl py-2 px-4">Tasks</button>
-                <button onclick="setCurrentPage('calendar'); closeMobileMenu();" class="text-gray-700 hover:text-pink-600 font-semibold text-xl py-2 px-4">Calendar</button>
-                <button onclick="setCurrentPage('chat'); closeMobileMenu();" class="text-gray-700 hover:text-pink-600 font-semibold text-xl py-2 px-4">Chat</button>
-                <button id="mobile-login-button" onclick="setCurrentPage('login'); closeMobileMenu();" class="bg-pink-600 text-white font-semibold py-3 px-6 rounded-full shadow-md mt-4">Log In</button>
-                <button id="mobile-logout-button" onclick="handleLogout(); closeMobileMenu();" class="hidden bg-gray-200 text-gray-800 font-semibold py-3 px-6 rounded-full shadow-md mt-4">Log Out</button>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Main Content Area -->
-    <main id="main-content" class="flex-grow pt-20">
-        <!-- Content will be rendered here by JavaScript -->
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-8 mt-16">
-        <div class="container mx-auto px-4 text-center">
-            <p class="text-sm">
-                © 2025 Pink Aware Team Hub. All rights reserved. Fiscally sponsored by Hack Club.
-            </p>
-        </div>
-    </footer>
-
-    <!-- Custom Modal/Dialog Box (for alerts) -->
-    <div id="custom-alert" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-[100]">
-        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full text-center">
-            <h3 id="alert-title" class="text-xl font-bold mb-2"></h3>
-            <p id="alert-message" class="text-gray-700 mb-4"></p>
-            <button onclick="closeCustomAlert()" class="bg-pink-600 text-white font-bold py-2 px-6 rounded-full hover:bg-pink-700 transition-colors">OK</button>
-        </div>
-    </div>
-
-    <!-- Campaign Management Modal -->
-    <div id="campaign-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-[90] modal-overlay">
-        <div class="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-fade-in-up">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="modal-title" class="text-2xl font-bold text-gray-800">Manage Campaigns</h3>
-                <button onclick="closeCampaignModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <!-- Desktop Menu & Icons -->
+            <div class="hidden md:flex items-center space-x-6">
+                <button onclick="setCurrentPage('dashboard')" class="text-white hover:text-pink-100 font-medium transition-colors duration-300 px-3 py-2 rounded-full hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-pink-300 flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-dashboard h-5 w-5"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                    <span>Dashboard</span>
                 </button>
-            </div>
-            
-            <!-- Existing Campaigns List -->
-            <div class="mb-6">
-                <h4 class="text-lg font-semibold mb-2">Current Campaigns</h4>
-                <div id="campaign-list" class="space-y-4">
-                    <div class="p-4 bg-gray-100 rounded-xl text-center">No campaign active.</div>
+                <button onclick="setCurrentPage('projects')" class="text-white hover:text-pink-100 font-medium transition-colors duration-300 px-3 py-2 rounded-full hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-pink-300 flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-boxes h-5 w-5"><path d="M2.97 12.93a1 1 0 0 0-.25 1.05l.86 2.06a1 1 0 0 0 1.25.52l2.36-.79"/><path d="m14 11-5.18 5.18a2 2 0 0 0 0 2.82l.86.86a2 2 0 0 0 2.82 0L17 14"/><path d="m17 14 5.18-5.18a2 2 0 0 0 0-2.82L21.32 5a2 2 0 0 0-2.82 0L14 11Z"/></svg>
+                    <span>Projects</span>
+                </button>
+                <button onclick="setCurrentPage('calendar')" class="text-white hover:text-pink-100 font-medium transition-colors duration-300 px-3 py-2 rounded-full hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-pink-300 flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar h-5 w-5"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                    <span>Calendar</span>
+                </button>
+                <button onclick="setCurrentPage('messages')" class="text-white hover:text-pink-100 font-medium transition-colors duration-300 px-3 py-2 rounded-full hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-pink-300 flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square h-5 w-5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>Messages</span>
+                </button>
+                <button onclick="setCurrentPage('admin')" class="text-white hover:text-pink-100 font-medium transition-colors duration-300 px-3 py-2 rounded-full hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-pink-300 flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings h-5 w-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.39a2 2 0 0 0 .73 2.73l.15.08a2 2 0 0 1 1 1.73v.53a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.52a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 1.73v-.17a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span>Admin</span>
+                </button>
+                <div class="relative group">
+                    <button class="flex items-center text-white hover:text-pink-100 transition duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bell h-6 w-6"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform scale-95 group-hover:scale-100 origin-top-right z-50">
+                        <div class="py-2 px-4 border-b border-gray-200">
+                            <span class="text-sm font-semibold text-gray-800">Notifications</span>
+                        </div>
+                        <ul class="py-2">
+                            <li class="px-4 py-2 hover:bg-gray-100 border-b border-gray-100">
+                                <a href="#" class="block text-sm text-gray-700">New project 'Q3 Marketing Campaign' created.</a>
+                            </li>
+                            <li class="px-4 py-2 hover:bg-gray-100 border-b border-gray-100">
+                                <a href="#" class="block text-sm text-gray-700">John commented on 'Website Redesign'.</a>
+                            </li>
+                            <li class="px-4 py-2 hover:bg-gray-100">
+                                <a href="#" class="block text-sm text-gray-700">Reminder: Board meeting at 3 PM today.</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="relative group">
+                    <button class="flex items-center space-x-2 focus:outline-none">
+                        <img class="h-8 w-8 rounded-full border-2 border-white" src="https://placehold.co/40x40/DB2777/ffffff?text=U" alt="User Profile">
+                        <span class="text-sm font-medium text-white hidden lg:block">User Name</span>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform scale-95 group-hover:scale-100 origin-top-right z-50">
+                        <ul class="py-2">
+                            <li class="px-4 py-2 hover:bg-gray-100 border-b border-gray-200">
+                                <a href="#" class="block text-sm text-gray-700">Profile</a>
+                            </li>
+                            <li class="px-4 py-2 hover:bg-gray-100 border-b border-gray-200">
+                                <a href="#" class="block text-sm text-gray-700">Settings</a>
+                            </li>
+                            <li class="px-4 py-2 hover:bg-gray-100">
+                                <a href="#" class="block text-sm text-gray-700">Sign Out</a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
-            <!-- Add/Update Form -->
-            <form onsubmit="event.preventDefault(); handleCampaignFormSubmit();" class="space-y-4">
-                <input type="hidden" id="campaign-id-input">
-                <label class="block">
-                    <span class="text-sm text-gray-600">Campaign Title</span>
-                    <input type="text" id="campaign-title-input" placeholder="e.g., Q4 2025 Fundraising" class="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-600">
-                </label>
-                <label class="block">
-                    <span class="text-sm text-gray-600">Progress (%)</span>
-                    <input type="number" id="campaign-progress-input" min="0" max="100" placeholder="e.g., 25" class="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-600">
-                </label>
-                <button type="submit" id="campaign-submit-button" class="w-full bg-pink-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-pink-700 transition-colors duration-300 transform active:scale-95">
-                    Save Campaign
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-white focus:outline-none">
+                    <svg id="menu-icon" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                    <svg id="close-icon" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                 </button>
-            </form>
+            </div>
+        </div>
+    </nav>
+    
+    <div id="mobile-menu" class="fixed top-0 left-0 w-64 h-full bg-gradient-to-t from-pink-500 to-purple-600 shadow-xl transform -translate-x-full transition-transform duration-300 ease-in-out z-40 md:hidden">
+        <div class="p-4">
+            <a href="#" onclick="setCurrentPage('dashboard')" class="flex items-center space-x-2 py-2 text-sm text-white hover:bg-white/10 rounded-lg px-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-dashboard h-5 w-5"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" onclick="setCurrentPage('projects')" class="flex items-center space-x-2 py-2 text-sm text-white hover:bg-white/10 rounded-lg px-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-boxes h-5 w-5"><path d="M2.97 12.93a1 1 0 0 0-.25 1.05l.86 2.06a1 1 0 0 0 1.25.52l2.36-.79"/><path d="m14 11-5.18 5.18a2 2 0 0 0 0 2.82l.86.86a2 2 0 0 0 2.82 0L17 14"/><path d="m17 14 5.18-5.18a2 2 0 0 0 0-2.82L21.32 5a2 2 0 0 0-2.82 0L14 11Z"/></svg>
+                <span>Projects</span>
+            </a>
+            <a href="#" onclick="setCurrentPage('calendar')" class="flex items-center space-x-2 py-2 text-sm text-white hover:bg-white/10 rounded-lg px-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar h-5 w-5"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                <span>Calendar</span>
+            </a>
+            <a href="#" onclick="setCurrentPage('messages')" class="flex items-center space-x-2 py-2 text-sm text-white hover:bg-white/10 rounded-lg px-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square h-5 w-5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Messages</span>
+            </a>
+            <a href="#" onclick="setCurrentPage('admin')" class="flex items-center space-x-2 py-2 text-sm text-white hover:bg-white/10 rounded-lg px-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings h-5 w-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.39a2 2 0 0 0 .73 2.73l.15.08a2 2 0 0 1 1 1.73v.53a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.52a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 1.73v-.17a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Admin</span>
+            </a>
         </div>
     </div>
 
+    <!-- Main Content Pages -->
+    <main class="flex-grow container mx-auto p-4 md:p-8">
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        setLogLevel('debug'); // Enable Firestore debug logging
+        <!-- Dashboard Page -->
+        <div id="page-dashboard" class="page active animate-fade-in-up">
+            <h1 class="text-4xl font-bold text-center mb-8 text-pink-600">Dashboard</h1>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Quick Stats Section -->
+                <section class="md:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 transition-transform duration-200 hover:scale-105">
+                        <h3 class="text-sm font-medium text-gray-500">Active Users</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-2">124</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 transition-transform duration-200 hover:scale-105">
+                        <h3 class="text-sm font-medium text-gray-500">Completed Tasks</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-2">87</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 transition-transform duration-200 hover:scale-105">
+                        <h3 class="text-sm font-medium text-gray-500">Messages Sent</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-2">1,500+</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 transition-transform duration-200 hover:scale-105">
+                        <h3 class="text-sm font-medium text-gray-500">Team Score</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-2">9.5/10</p>
+                    </div>
+                </section>
 
-        // IMPORTANT: Global variables are provided by the Canvas environment.
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                <!-- Today's Agenda -->
+                <section class="md:col-span-3 bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Today's Agenda</h2>
+                    <ul id="agenda-list" class="space-y-4">
+                        <li class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                            <span class="flex-shrink-0 text-gray-500 font-semibold text-sm w-16">9:00 AM</span>
+                            <div class="flex-grow">
+                                <h3 class="font-medium text-gray-800">Team Stand-up Meeting</h3>
+                                <p class="text-xs text-gray-500">Review yesterday's progress and plan today's tasks.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                            <span class="flex-shrink-0 text-gray-500 font-semibold text-sm w-16">10:30 AM</span>
+                            <div class="flex-grow">
+                                <h3 class="font-medium text-gray-800">Review Website Mockups</h3>
+                                <p class="text-xs text-gray-500">Provide feedback on the latest design mockups for the new website.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                            <span class="flex-shrink-0 text-gray-500 font-semibold text-sm w-16">2:00 PM</span>
+                            <div class="flex-grow">
+                                <h3 class="font-medium text-gray-800">Client Call: Project Alpha</h3>
+                                <p class="text-xs text-gray-500">Discuss project milestones and next steps with the client.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </section>
 
-        let app, auth, db;
-        let userId = null;
-        let isAuthReady = false;
-        let currentPage = 'login';
-        let chatState = {
-            currentChatPartnerId: null,
-            users: []
+                <!-- Team Projects & Announcements & Tasks -->
+                <div class="md:col-span-2 space-y-6">
+                    <section class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 transition-transform duration-200 hover:scale-[1.01]">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Team Projects</h2>
+                        <div id="projects-list" class="space-y-4">
+                            <!-- Project Cards will be rendered by JS -->
+                        </div>
+                    </section>
+                    <section class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 transition-transform duration-200 hover:scale-[1.01]">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Announcements</h2>
+                        <ul id="announcements-list" class="space-y-4">
+                            <!-- Announcements will be rendered by JS -->
+                        </ul>
+                    </section>
+                </div>
+
+                <!-- Team Tasks Section -->
+                <section class="md:col-span-1 bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Team Tasks</h2>
+                    <ul id="tasks-list" class="space-y-4">
+                        <!-- Tasks will be rendered by JS -->
+                    </ul>
+                </section>
+            </div>
+        </div>
+
+        <!-- Projects Page -->
+        <div id="page-projects" class="page animate-fade-in-up">
+            <h1 class="text-4xl font-bold text-center mb-8 text-pink-600">Team Projects</h1>
+             <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <p class="text-gray-500 mb-8">This page provides a detailed overview of all active projects, their progress, and key milestones.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Placeholder Project 1 -->
+                    <div class="bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
+                        <div class="relative w-36 h-36 progress-circle mb-4" style="background: conic-gradient(#DB2777 90%, #E5E7EB 90%);">
+                            <span class="progress-circle-inner-text text-3xl font-bold text-pink-600">90%</span>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Website Redesign</h3>
+                        <p class="text-sm text-gray-500 mb-4">Finalizing UI/UX for launch. Beta testing underway.</p>
+                        <div class="w-full text-left space-y-2">
+                            <div class="flex items-center text-sm text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user h-4 w-4 mr-2 text-pink-600"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                <span>Assigned to: Jane & John</span>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar h-4 w-4 mr-2 text-pink-600"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                                <span>Due: October 1, 2025</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Placeholder Project 2 -->
+                    <div class="bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
+                        <div class="relative w-36 h-36 progress-circle mb-4" style="background: conic-gradient(#DB2777 65%, #E5E7EB 65%);">
+                            <span class="progress-circle-inner-text text-3xl font-bold text-pink-600">65%</span>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Q3 Marketing Campaign</h3>
+                        <p class="text-sm text-gray-500 mb-4">Content creation and ad strategy are in progress.</p>
+                        <div class="w-full text-left space-y-2">
+                            <div class="flex items-center text-sm text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user h-4 w-4 mr-2 text-pink-600"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                <span>Assigned to: Marketing Team</span>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar h-4 w-4 mr-2 text-pink-600"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                                <span>Due: September 30, 2025</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Placeholder Project 3 -->
+                    <div class="bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200 flex flex-col items-center text-center">
+                        <div class="relative w-36 h-36 progress-circle mb-4" style="background: conic-gradient(#DB2777 30%, #E5E7EB 30%);">
+                            <span class="progress-circle-inner-text text-3xl font-bold text-pink-600">30%</span>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Mobile App Concept</h3>
+                        <p class="text-sm text-gray-500 mb-4">Initial research and wireframing of a new mobile app.</p>
+                        <div class="w-full text-left space-y-2">
+                            <div class="flex items-center text-sm text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user h-4 w-4 mr-2 text-pink-600"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                <span>Assigned to: Team Lead</span>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar h-4 w-4 mr-2 text-pink-600"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                                <span>Due: November 15, 2025</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Page -->
+        <div id="page-calendar" class="page animate-fade-in-up">
+            <h1 class="text-4xl font-bold text-center mb-8 text-pink-600">Calendar</h1>
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-200 transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                    <h2 id="current-month-year" class="text-xl font-bold"></h2>
+                    <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-200 transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 text-center font-semibold text-sm mb-2 text-gray-500">
+                    <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-2">
+                    <!-- Calendar days will be injected here by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Page -->
+        <div id="page-messages" class="page animate-fade-in-up">
+            <h1 class="text-4xl font-bold text-center mb-8 text-pink-600">Messages</h1>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-[70vh]">
+                <!-- Contact List -->
+                <div class="md:col-span-1 bg-white p-4 rounded-2xl shadow-lg border border-gray-200 overflow-y-auto">
+                    <h2 class="text-2xl font-semibold mb-4">Direct Messages</h2>
+                    <ul id="contact-list" class="space-y-2">
+                        <!-- Contacts will be injected by JS -->
+                    </ul>
+                </div>
+                <!-- Chat Window -->
+                <div class="md:col-span-2 bg-white p-4 rounded-2xl shadow-lg border border-gray-200 flex flex-col h-full">
+                    <div id="chat-header" class="flex items-center space-x-4 p-2 border-b border-gray-200 mb-4">
+                        <img id="chat-avatar" class="h-10 w-10 rounded-full" src="https://placehold.co/40x40/5eead4/ffffff?text=U" alt="Contact Avatar">
+                        <div>
+                            <h3 id="chat-name" class="font-bold text-lg">Jane Doe</h3>
+                            <p id="chat-status" class="text-sm text-green-500">Online</p>
+                        </div>
+                    </div>
+                    <div id="chat-messages" class="flex-grow overflow-y-auto space-y-4 p-2">
+                        <!-- Messages will be injected by JS -->
+                    </div>
+                    <div class="mt-4 flex items-center space-x-2">
+                        <input type="text" id="message-input" placeholder="Send a message..." class="flex-grow p-3 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 transition duration-200 text-sm">
+                        <button id="send-message-btn" class="bg-pink-600 text-white p-3 rounded-full hover:bg-pink-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Page -->
+        <div id="page-admin" class="page animate-fade-in-up">
+            <h1 class="text-4xl font-bold text-center mb-8 text-pink-600">Admin Panel</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Project Management -->
+                <section class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                    <h2 class="text-2xl font-semibold mb-4">Manage Projects</h2>
+                    <div class="space-y-6">
+                        <!-- Control for Project 1 -->
+                        <div>
+                            <label for="website-redesign-progress" class="block text-sm font-medium text-gray-700">Website Redesign Progress (%)</label>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <input type="number" id="website-redesign-progress" min="0" max="100" value="90" class="flex-grow p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500">
+                                <button onclick="updateProjectProgress('website-redesign', document.getElementById('website-redesign-progress').value)" class="bg-pink-600 text-white p-2 rounded-lg hover:bg-pink-700 transition duration-200">Update</button>
+                            </div>
+                        </div>
+                        <!-- Control for Project 2 -->
+                        <div>
+                            <label for="q3-marketing-progress" class="block text-sm font-medium text-gray-700">Q3 Marketing Campaign Progress (%)</label>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <input type="number" id="q3-marketing-progress" min="0" max="100" value="65" class="flex-grow p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500">
+                                <button onclick="updateProjectProgress('q3-marketing', document.getElementById('q3-marketing-progress').value)" class="bg-pink-600 text-white p-2 rounded-lg hover:bg-pink-700 transition duration-200">Update</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Announcement Management -->
+                <section class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                    <h2 class="text-2xl font-semibold mb-4">Add Announcement</h2>
+                    <textarea id="new-announcement-text" rows="4" class="w-full p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none" placeholder="Write a new announcement..."></textarea>
+                    <button onclick="addAnnouncement()" class="mt-4 w-full bg-pink-600 text-white p-3 rounded-lg hover:bg-pink-700 transition duration-200">Post Announcement</button>
+                </section>
+
+                <!-- Task Management -->
+                <section class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                    <h2 class="text-2xl font-semibold mb-4">Add New Task</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="new-task-title" class="block text-sm font-medium text-gray-700">Task Title</label>
+                            <input type="text" id="new-task-title" class="w-full mt-1 p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g., Finalize presentation slides">
+                        </div>
+                        <div>
+                            <label for="new-task-due-date" class="block text-sm font-medium text-gray-700">Due Date</label>
+                            <input type="date" id="new-task-due-date" class="w-full mt-1 p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                        <button onclick="addTask()" class="w-full bg-teal-500 text-white p-3 rounded-lg hover:bg-teal-600 transition duration-200">Add Task</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Maintains a list of all pages
+        const pages = ['dashboard', 'projects', 'calendar', 'messages', 'admin'];
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+
+        // Data for Projects, Announcements, and Tasks (moved to JS for dynamic updates)
+        const projects = {
+            'website-redesign': { name: 'Website Redesign', progress: 90, description: 'Progress toward launch' },
+            'q3-marketing': { name: 'Q3 Marketing Campaign', progress: 65, description: 'Planning & execution' }
         };
+        const announcements = [
+            { text: 'New team members join!', subtext: 'Welcome Lisa and Sam to the team!' },
+            { text: 'Quarterly review tomorrow', subtext: 'Please prepare your reports for review.' },
+            { text: 'New office hours', subtext: 'Office hours have been updated to 9-5.' }
+        ];
 
-        // --- Custom Alert System ---
-        window.showCustomAlert = function(title, message) {
-            document.getElementById('alert-title').textContent = title;
-            document.getElementById('alert-message').textContent = message;
-            document.getElementById('custom-alert').classList.remove('hidden');
-            document.getElementById('custom-alert').classList.add('flex');
-        }
+        const tasks = [
+            { title: 'Finalize report for CEO', due: '2025-09-20', completed: false },
+            { title: 'Review Q3 marketing plan', due: '2025-09-25', completed: false },
+            { title: 'Schedule team check-in', due: '2025-09-18', completed: true }
+        ];
 
-        window.closeCustomAlert = function() {
-            document.getElementById('custom-alert').classList.add('hidden');
-            document.getElementById('custom-alert').classList.remove('flex');
-        }
-
-        // --- Core Application Logic ---
-
-        window.firebaseInit = async () => {
-            if (Object.keys(firebaseConfig).length === 0) {
-                console.error("Firebase config is missing. App cannot run.");
-                return;
-            }
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            onAuthStateChanged(auth, async (user) => {
-                userId = user ? user.uid : null;
-                isAuthReady = true;
-                updateUIForAuth(!!user);
-                await setupInitialData();
-                renderPage();
+        // Handles page navigation
+        function setCurrentPage(pageId) {
+            pages.forEach(id => {
+                const page = document.getElementById(`page-${id}`);
+                if (page) {
+                    page.classList.remove('active', 'animate-fade-in-up');
+                    page.classList.add('hidden');
+                }
             });
-
-            window.db = db;
-            window.auth = auth;
-            window.getAuth = () => auth;
-            window.getFirestore = () => db;
-            window.getUserId = () => userId;
-            window.isAuthReady = () => isAuthReady;
-            window.collection = collection;
-            window.query = query;
-            window.onSnapshot = onSnapshot;
-            window.addDoc = addDoc;
-            window.doc = doc;
-            window.updateDoc = updateDoc;
-            window.deleteDoc = deleteDoc;
-            window.getDocs = getDocs;
-
-            // Attempt to sign in on page load
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Firebase auth failed:", error);
-            }
-        };
-        
-        async function setupInitialData() {
-            const db = window.getFirestore();
-            if (!db) {
-                console.error("Firestore not initialized.");
-                return;
-            }
-            
-            const tasksRef = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
-            const eventsRef = collection(db, 'artifacts', appId, 'public', 'data', 'events');
-            const campaignsRef = collection(db, 'artifacts', appId, 'public', 'data', 'campaigns');
-            const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'chat');
-
-            // Add dummy tasks if collection is empty
-            const tasksSnapshot = await getDocs(tasksRef);
-            if (tasksSnapshot.empty) {
-                await addDoc(tasksRef, { text: 'Launch social media campaign', completed: false, createdAt: new Date(), dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
-                await addDoc(tasksRef, { text: 'Design t-shirts for volunteers', completed: false, createdAt: new Date(), dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) });
-                await addDoc(tasksRef, { text: 'Write blog post about breast cancer awareness', completed: true, createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) });
-                await addDoc(tasksRef, { text: 'Organize next month\'s volunteer schedule', completed: false, createdAt: new Date() });
-            }
-
-            // Add dummy events if collection is empty
-            const eventsSnapshot = await getDocs(eventsRef);
-            if (eventsSnapshot.empty) {
-                await addDoc(eventsRef, { title: 'Team Kickoff Meeting', eventDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), createdAt: new Date() });
-                await addDoc(eventsRef, { title: 'Volunteer Training Session', eventDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), createdAt: new Date() });
-                await addDoc(eventsRef, { title: 'Annual Fundraising Gala', eventDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), createdAt: new Date() });
-            }
-            
-            // Add dummy chat messages if collection is empty
-            const chatSnapshot = await getDocs(chatRef);
-            if(chatSnapshot.empty) {
-                await addDoc(chatRef, { text: 'Hello everyone, welcome to the Pink Aware Team Hub!', senderId: 'System', createdAt: new Date() });
-                await addDoc(chatRef, { text: 'Excited to be here! Let\'s make a difference.', senderId: 'User-123456', createdAt: new Date(Date.now() + 1000) });
-            }
-
-            // Add dummy campaign if collection is empty
-            const campaignsSnapshot = await getDocs(campaignsRef);
-            if (campaignsSnapshot.empty) {
-                await addDoc(campaignsRef, { 
-                    title: 'Breast Cancer Awareness Month',
-                    progress: 25,
-                    createdAt: new Date()
-                });
-            }
-        }
-
-
-        function updateUIForAuth(isAuthenticated) {
-            const loginButton = document.getElementById('login-button');
-            const logoutButton = document.getElementById('logout-button');
-            const mobileLoginButton = document.getElementById('mobile-login-button');
-            const mobileLogoutButton = document.getElementById('mobile-logout-button');
-            const navLinks = document.getElementById('nav-links');
-            const mobileNavLinks = document.getElementById('mobile-nav-links');
-            const userIdDisplay = document.getElementById('user-id-display');
-
-            if (isAuthenticated) {
-                if (loginButton) loginButton.classList.add('hidden');
-                if (logoutButton) logoutButton.classList.remove('hidden');
-                if (mobileLoginButton) mobileLoginButton.classList.add('hidden');
-                if (mobileLogoutButton) mobileLogoutButton.classList.remove('hidden');
-                if (navLinks) navLinks.classList.remove('hidden');
-                if (mobileNavLinks) mobileNavLinks.classList.remove('hidden');
-                if (userIdDisplay) {
-                    userIdDisplay.textContent = 'Team Member ID: ' + userId.substring(0, 8) + '...';
-                    userIdDisplay.classList.remove('hidden');
-                }
-            } else {
-                if (loginButton) loginButton.classList.remove('hidden');
-                if (logoutButton) logoutButton.classList.add('hidden');
-                if (mobileLoginButton) mobileLoginButton.classList.remove('hidden');
-                if (mobileLogoutButton) mobileLogoutButton.classList.add('hidden');
-                if (navLinks) navLinks.classList.add('hidden');
-                if (mobileNavLinks) mobileNavLinks.classList.add('hidden');
-                if (userIdDisplay) userIdDisplay.classList.add('hidden');
-            }
-        }
-
-        // Page rendering functions
-        function renderPage() {
-            const main = document.getElementById('main-content');
-            if (!main || !isAuthReady) return;
-
-            main.innerHTML = '';
-            let content = '';
-
-            if (userId === null && currentPage !== 'login') {
-                currentPage = 'login';
-            } else if (userId !== null && currentPage === 'login') {
-                currentPage = 'dashboard';
-            }
-
-            switch (currentPage) {
-                case 'login':
-                    content = renderLogin();
-                    break;
-                case 'dashboard':
-                    content = renderDashboard();
-                    break;
-                case 'resources':
-                    content = renderResources();
-                    break;
-                case 'tasks':
-                    content = renderTasks();
-                    break;
-                case 'calendar':
-                    content = renderCalendar();
-                    break;
-                case 'chat':
-                    content = renderChat();
-                    break;
-            }
-
-            main.innerHTML = content;
-            if (userId) {
-                if (currentPage === 'tasks') {
-                    setupTaskListener();
-                } else if (currentPage === 'calendar') {
-                    setupCalendarListener();
-                } else if (currentPage === 'chat') {
-                    setupChatListener();
-                } else if (currentPage === 'dashboard') {
-                    setupDashboardListeners();
+            const currentPage = document.getElementById(`page-${pageId}`);
+            if (currentPage) {
+                currentPage.classList.remove('hidden');
+                currentPage.classList.add('active', 'animate-fade-in-up');
+                if (pageId === 'dashboard') {
+                    renderProjects();
+                    renderAnnouncements();
+                    renderTasks();
+                } else if (pageId === 'calendar') {
+                    renderCalendar();
+                } else if (pageId === 'messages') {
+                    renderContacts();
+                    renderChatMessages('jane');
                 }
             }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            closeMobileMenu();
         }
 
-        window.setCurrentPage = function(page) {
-            currentPage = page;
-            renderPage();
-        };
-
-        window.handleLogout = async function() {
-            const auth = window.getAuth();
-            try {
-                await signOut(auth);
-                showCustomAlert("Logged Out", "You have been successfully logged out.");
-                window.setCurrentPage('login');
-            } catch (error) {
-                console.error("Logout failed:", error);
-                showCustomAlert("Logout Failed", "An error occurred during logout. Please try again.");
-            }
-        };
-        
-        window.closeMobileMenu = function() {
+        // Handles mobile menu
+        function closeMobileMenu() {
             const mobileMenu = document.getElementById('mobile-menu');
             const menuIcon = document.getElementById('menu-icon');
             const closeIcon = document.getElementById('close-icon');
             mobileMenu.style.transform = 'translateX(-100%)';
-            setTimeout(() => mobileMenu.classList.add('hidden'), 300);
+            setTimeout(() => { mobileMenu.classList.add('hidden'); }, 300);
             menuIcon.classList.remove('hidden');
             closeIcon.classList.add('hidden');
-        };
+        }
 
-        // --- Page Renderers ---
-        function renderLogin() {
-            return `
-                <section class="container mx-auto px-4 py-16">
-                    <div class="bg-white rounded-3xl p-8 md:p-12 shadow-xl max-w-md mx-auto animate-fade-in-up">
-                        <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Team Login</h2>
-                        <form onsubmit="event.preventDefault(); handleLoginAttempt();">
-                            <p class="text-sm text-center text-gray-500 mb-6">
-                                You are currently logged in. To see the dashboard, click on the 'Dashboard' button at the top.
-                            </p>
-                        </form>
+        // --- Dashboard Content Rendering Functions ---
+
+        function renderProjects() {
+            const projectsList = document.getElementById('projects-list');
+            projectsList.innerHTML = '';
+            for (const id in projects) {
+                const project = projects[id];
+                const projectElement = document.createElement('div');
+                projectElement.className = 'flex items-center justify-between p-4 bg-gray-50 rounded-lg';
+                projectElement.innerHTML = `
+                    <div>
+                        <h3 class="text-lg font-medium">${project.name}</h3>
+                        <p class="text-sm text-gray-500">${project.description}</p>
                     </div>
-                </section>
-            `;
+                    <div class="relative w-24 h-24 progress-circle" style="background: conic-gradient(#DB2777 ${project.progress}%, #E5E7EB ${project.progress}%);">
+                        <span class="progress-circle-inner-text text-xl font-bold text-pink-600">${project.progress}%</span>
+                    </div>
+                `;
+                projectsList.appendChild(projectElement);
+            }
+        }
+
+        function renderAnnouncements() {
+            const announcementsList = document.getElementById('announcements-list');
+            announcementsList.innerHTML = '';
+            announcements.forEach(announcement => {
+                const announcementElement = document.createElement('li');
+                announcementElement.className = 'border-b border-gray-200 pb-2';
+                announcementElement.innerHTML = `
+                    <p class="text-sm font-medium text-gray-800">${announcement.text}</p>
+                    <p class="text-xs text-gray-500">${announcement.subtext}</p>
+                `;
+                announcementsList.appendChild(announcementElement);
+            });
         }
         
-        // Updated Dashboard Renderer to include a new section for all campaigns
-        function renderDashboard() {
-            const userId = window.getUserId();
-            if (!userId) {
-                return renderLogin();
-            }
-            return `
-                <section class="container mx-auto px-4 py-16">
-                    <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4 animate-fade-in-up">
-                        Team Dashboard
-                    </h1>
-                    <p class="text-gray-500 text-lg mb-8 animate-fade-in-up delay-100">
-                        Welcome back! Here's a quick overview of our team's progress.
-                    </p>
-                    <div class="grid lg:grid-cols-3 gap-8 mb-12">
-                        <!-- Progress Overview Card -->
-                        <div class="lg:col-span-2 bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 animate-fade-in-up delay-200">
-                            <div class="flex items-center justify-between mb-4">
-                                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-pink-600"><path d="M12 20.94a9.13 9.13 0 0 1-6.72-3.88L2 15a2 2 0 0 1 .43-2.65l1.52-1.28A2 2 0 0 1 5.58 11L12 18.5l6.42-7.5a2 2 0 0 1 1.63-.57l1.52 1.28a2 2 0 0 1 .43 2.65l-3.28 2.06A9.13 9.13 0 0 1 12 20.94Z"/><path d="m17.5 7.5-5.5 6-5.5-6a3 3 0 1 1 5.5-3.5 3 3 0 1 1 5.5 3.5Z"/></svg>
-                                    <span id="campaign-title-display">Campaign Progress</span>
-                                </h2>
-                                <button onclick="openCampaignModal()" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-full text-sm hover:bg-gray-300 transition-colors">Manage Campaign</button>
-                            </div>
-                            <div class="flex flex-col md:flex-row items-center justify-around">
-                                <div id="progress-circle" class="progress-circle">
-                                    <span id="progress-circle-text" class="progress-circle-text">--%</span>
-                                </div>
-                                <div class="space-y-4 text-center md:text-left mt-6 md:mt-0">
-                                    <div class="flex items-center space-x-2">
-                                        <span class="w-4 h-4 rounded-full bg-pink-600"></span>
-                                        <span id="progress-text-met" class="text-lg text-gray-700">--% Campaign Goal Met</span>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="w-4 h-4 rounded-full bg-gray-300"></span>
-                                        <span id="progress-text-remaining" class="text-lg text-gray-700">--% Remaining</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Quick Actions Card -->
-                        <div class="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 animate-fade-in-up delay-300">
-                            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-pink-600"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                Team Activity
-                            </h2>
-                            <ul id="team-activity-list" class="space-y-4">
-                                <!-- Dynamic content will be loaded here -->
-                                <li class="text-gray-500">Loading activity...</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- All Campaigns List -->
-                    <div class="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 animate-fade-in-up delay-400 mb-12">
-                        <div class="flex items-center justify-between mb-4">
-                            <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-pink-600"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                                All Campaigns
-                            </h2>
-                            <button onclick="openCampaignModal()" class="bg-pink-600 text-white font-semibold py-2 px-4 rounded-full text-sm hover:bg-pink-700 transition-colors">Create New</button>
-                        </div>
-                        <div id="all-campaigns-list" class="space-y-4">
-                            <!-- All campaigns will be rendered here -->
-                            <p class="text-center text-gray-500 italic">Loading campaigns...</p>
-                        </div>
-                    </div>
-
-                    <!-- Upcoming Events Card -->
-                    <div class="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 animate-fade-in-up delay-500">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-pink-600"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                            Upcoming Events
-                        </h2>
-                        <ul id="upcoming-events-list" class="space-y-3">
-                            <!-- Dynamic content will be loaded here -->
-                            <li class="text-gray-500">Loading events...</li>
-                        </ul>
-                    </div>
-                </section>
-            `;
-        }
-        
-        window.openCampaignModal = function(campaign) {
-            const modal = document.getElementById('campaign-modal');
-            const titleInput = document.getElementById('campaign-title-input');
-            const progressInput = document.getElementById('campaign-progress-input');
-            const idInput = document.getElementById('campaign-id-input');
-            const submitButton = document.getElementById('campaign-submit-button');
-
-            if (campaign) {
-                idInput.value = campaign.id;
-                titleInput.value = campaign.title;
-                progressInput.value = campaign.progress;
-                submitButton.textContent = 'Update Campaign';
-                document.getElementById('modal-title').textContent = 'Edit Campaign';
-            } else {
-                idInput.value = '';
-                titleInput.value = '';
-                progressInput.value = '';
-                submitButton.textContent = 'Add Campaign';
-                document.getElementById('modal-title').textContent = 'Create New Campaign';
-            }
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        };
-
-        window.closeCampaignModal = function() {
-            const modal = document.getElementById('campaign-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        };
-
-        window.handleCampaignFormSubmit = async function() {
-            const db = window.getFirestore();
-            const titleInput = document.getElementById('campaign-title-input');
-            const progressInput = document.getElementById('campaign-progress-input');
-            const idInput = document.getElementById('campaign-id-input');
-
-            const campaignTitle = titleInput.value.trim();
-            const progress = parseInt(progressInput.value, 10);
-
-            if (!campaignTitle || isNaN(progress) || progress < 0 || progress > 100) {
-                showCustomAlert("Invalid Input", "Please provide a valid title and a progress percentage between 0 and 100.");
-                return;
-            }
-
-            try {
-                const campaignsRef = collection(db, 'artifacts', appId, 'public', 'data', 'campaigns');
-                if (idInput.value) {
-                    await updateDoc(doc(campaignsRef, idInput.value), {
-                        title: campaignTitle,
-                        progress: progress,
-                        updatedAt: new Date()
-                    });
-                } else {
-                    await addDoc(campaignsRef, {
-                        title: campaignTitle,
-                        progress: progress,
-                        createdAt: new Date()
-                    });
-                }
-                closeCampaignModal();
-            } catch (error) {
-                console.error("Error saving campaign:", error);
-                showCustomAlert("Error", "Could not save campaign. Check the console for details.");
-            }
-        };
-
-
-        function setupDashboardListeners() {
-            const db = window.getFirestore();
-            
-            // Setup listener for campaigns
-            const campaignListEl = document.getElementById('campaign-list');
-            const allCampaignsListEl = document.getElementById('all-campaigns-list');
-            const progressCircleEl = document.getElementById('progress-circle');
-            const progressCircleTextEl = document.getElementById('progress-circle-text');
-            const campaignTitleDisplayEl = document.getElementById('campaign-title-display');
-            const progressTextMetEl = document.getElementById('progress-text-met');
-            const progressTextRemainingEl = document.getElementById('progress-text-remaining');
-            
-            const campaignsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'campaigns');
-            const campaignsQuery = query(campaignsCollectionRef);
-
-            onSnapshot(campaignsQuery, (snapshot) => {
-                campaignListEl.innerHTML = '';
-                allCampaignsListEl.innerHTML = '';
-                const campaigns = [];
-                snapshot.forEach(doc => campaigns.push({ id: doc.id, ...doc.data() }));
-
-                // Sort campaigns by most recent first
-                campaigns.sort((a, b) => (b.createdAt?.toDate() || new Date(0)) - (a.createdAt?.toDate() || new Date(0)));
-
-                if (campaigns.length > 0) {
-                    const latestCampaign = campaigns[0];
-                    const progress = latestCampaign.progress || 0;
-                    const remaining = 100 - progress;
-                    
-                    // Update main progress card with the latest campaign's data
-                    progressCircleEl.style.background = `radial-gradient(closest-side, white 79%, transparent 80% 100%), conic-gradient(#DB2777 ${progress}%, #e2e8f0 0)`;
-                    progressCircleTextEl.textContent = `${progress}%`;
-                    campaignTitleDisplayEl.textContent = latestCampaign.title;
-                    progressTextMetEl.textContent = `${progress}% Campaign Goal Met`;
-                    progressTextRemainingEl.textContent = `${remaining}% Remaining`;
-                    
-                    // Render the list of all campaigns in the new section
-                    campaigns.forEach(campaign => {
-                        const div = document.createElement('div');
-                        div.className = 'p-4 bg-gray-100 rounded-xl flex items-center justify-between shadow-sm';
-                        const progressBgColor = `conic-gradient(#DB2777 ${campaign.progress}%, transparent 0)`;
-                        div.innerHTML = `
-                            <div class="flex-1 min-w-0">
-                                <h3 class="font-semibold text-gray-800">${campaign.title}</h3>
-                                <div class="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
-                                    <div class="h-full bg-pink-600 rounded-full transition-all duration-300" style="width: ${campaign.progress}%;"></div>
-                                </div>
-                                <p class="text-sm text-gray-500 mt-1">${campaign.progress}% Complete</p>
-                            </div>
-                            <button onclick="openCampaignModal({ id: '${campaign.id}', title: '${campaign.title}', progress: ${campaign.progress} })" class="text-pink-600 hover:text-pink-800 transition-colors flex-shrink-0 ml-4">Edit</button>
-                        `;
-                        allCampaignsListEl.appendChild(div);
-
-                        // Also render in the modal's list
-                        const modalDiv = document.createElement('div');
-                        modalDiv.className = 'p-4 bg-gray-100 rounded-xl flex items-center justify-between';
-                        modalDiv.innerHTML = `
-                            <span>${campaign.title} (${campaign.progress}%)</span>
-                            <button onclick="openCampaignModal({ id: '${campaign.id}', title: '${campaign.title}', progress: ${campaign.progress} })" class="text-pink-600 hover:text-pink-800 transition-colors">Edit</button>
-                        `;
-                        campaignListEl.appendChild(modalDiv);
-                    });
-                } else {
-                    progressCircleEl.style.background = `radial-gradient(closest-side, white 79%, transparent 80% 100%), conic-gradient(#e2e8f0 100%, #e2e8f0 0)`;
-                    progressCircleTextEl.textContent = `0%`;
-                    campaignTitleDisplayEl.textContent = 'No Active Campaign';
-                    progressTextMetEl.textContent = `0% Campaign Goal Met`;
-                    progressTextRemainingEl.textContent = `100% Remaining`;
-                    campaignListEl.innerHTML = '<div class="p-4 bg-gray-100 rounded-xl text-center">No campaign active.</div>';
-                    allCampaignsListEl.innerHTML = '<p class="text-center text-gray-500 italic">No campaigns found. Create one to get started!</p>';
-                }
-            });
-
-            // Setup listener for team activity (e.g., last 5 tasks completed)
-            const activityList = document.getElementById('team-activity-list');
-            const tasksCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
-
-            const activityQuery = query(tasksCollectionRef);
-            
-            onSnapshot(activityQuery, (snapshot) => {
-                activityList.innerHTML = '';
-                const tasks = [];
-                snapshot.forEach(doc => tasks.push(doc.data()));
-                
-                tasks.sort((a, b) => (b.createdAt?.toDate() || new Date(0)) - (a.createdAt?.toDate() || new Date(0)));
-                const recentTasks = tasks.slice(0, 5);
-
-                if (recentTasks.length === 0) {
-                    activityList.innerHTML = '<li class="text-gray-500">No recent activity.</li>';
-                } else {
-                    recentTasks.forEach(task => {
-                        const li = document.createElement('li');
-                        li.className = `flex items-center space-x-2 text-gray-700`;
-                        const statusColor = task.completed ? 'bg-green-500' : 'bg-blue-500';
-                        const statusText = task.completed ? 'completed' : 'created';
-                        li.innerHTML = `
-                            <div class="w-2.5 h-2.5 rounded-full ${statusColor}"></div>
-                            <span>A user ${statusText} the task: "${task.text}".</span>
-                        `;
-                        activityList.appendChild(li);
-                    });
-                }
-            });
-
-            // Setup listener for upcoming events
-            const eventsList = document.getElementById('upcoming-events-list');
-            const eventsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'events');
-            const eventsQuery = query(eventsCollectionRef);
-
-            onSnapshot(eventsQuery, (snapshot) => {
-                eventsList.innerHTML = '';
-                const events = [];
-                snapshot.forEach(doc => events.push(doc.data()));
-
-                const now = new Date();
-                const upcomingEvents = events.filter(e => (e.eventDate?.toDate() || new Date()) >= now).sort((a, b) => (a.eventDate?.toDate() || new Date()) - (b.eventDate?.toDate() || new Date()));
-                const top5Events = upcomingEvents.slice(0, 5);
-
-                if (top5Events.length === 0) {
-                    eventsList.innerHTML = '<li class="text-gray-500 text-center py-4">No upcoming events.</li>';
-                } else {
-                    top5Events.forEach(event => {
-                        const eventDate = event.eventDate?.toDate();
-                        const formattedDate = eventDate ? eventDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No Date';
-                        const li = document.createElement('li');
-                        li.className = `flex items-center p-4 rounded-xl border border-gray-200 bg-gray-50`;
-                        li.innerHTML = `
-                            <div class="flex-shrink-0 bg-pink-500 text-white font-bold text-lg p-2 rounded-lg mr-4">${formattedDate.split(' ')[0].toUpperCase()} <span class="block text-sm">${formattedDate.split(' ')[1]}</span></div>
-                            <div>
-                                <p class="font-semibold text-gray-800">${event.title}</p>
-                                <p class="text-sm text-gray-600">${event.description || ''}</p>
-                            </div>
-                        `;
-                        eventsList.appendChild(li);
-                    });
-                }
-            });
-        }
-
-
-        function renderResources() {
-            const resources = [
-                { title: 'Project Plan - Q4 2025', description: 'Detailed plan and milestones for the fourth quarter.', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-gray-500"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>` },
-                { title: 'Brand Guidelines', description: 'Official brand assets, color palettes, and typography rules.', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-gray-500"><path d="M12.22 2h-.44C9.43 2 8.01 3.2 7.78 4.67 7.07 4.96 6.35 5.28 5.67 5.76 4.75 6.42 4.1 7.42 4 8.71 4 9.1 4.1 9.49 4.25 9.87c.18.43.38.86.58 1.28l.18.35c.18.35.35.7.5 1.05.21.48.38.97.52 1.48.24.87.24 1.73 0 2.6-.14.5-.31.99-.52 1.48-.15.35-.32.7-.5 1.05-.18.35-.35.72-.53 1.09-.15.28-.3.56-.45.85a.99.99 0 0 0-.25.59c.14.3.4.52.7.59.3.07.61.06.91.03l.25-.03c.5-.07 1-.15 1.48-.24.87-.24 1.73-.24 2.6 0 .5.14.99.31 1.48.52.35.15.7.32 1.05.5.35.18.7.35 1.09.53.28.15.56.3.85.45.3.14.61.22.92.2a.99.99 0 0 0 .59-.25c.3-.14.52-.4.59-.7.07-.3.06-.61.03-.91l-.03-.25c-.07-.5-.15-1-.24-1.48-.24-.87-.24-1.73 0-2.6.14-.5.31-.99.52-1.48.15-.35.32-.7.5-1.05.18-.35.35-.72.53-1.09.15-.28.3-.56.45-.85a.99.99 0 0 0 .25-.59c-.14-.3-.4-.52-.7-.59-.3-.07-.61-.06-.91-.03l-.25.03c-.5.07-1 .15-1.48.24-.87.24-1.73.24-2.6 0-.5-.14-.99-.31-1.48-.52-.35-.15-.7-.32-1.05-.5-.35-.18-.7-.35-1.09-.53a.99.99 0 0 0-.85-.45c-.3-.14-.61-.22-.92-.2a.99.99 0 0 0-.59.25z"/></svg>` },
-                { title: 'Volunteer Onboarding Checklist', description: 'A checklist for onboarding new team members.', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-gray-500"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>` },
-                { title: 'Social Media Toolkit', description: 'Sample posts, images, and hashtags for our campaigns.', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-gray-500"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.5" y1="6.5" y2="6.5"/></svg>` },
-                { title: 'Fundraising Best Practices', description: 'Tips and strategies for successful fundraising efforts.', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-gray-500"><path d="M18 10a6 6 0 0 0-12 0v8a2 2 0 0 1-2 2h16a2 2 0 0 1-2-2v-8z"/><path d="M12 2v6"/><path d="M10 8h4"/></svg>` }
-            ];
-            return `
-                <section class="container mx-auto px-4 py-16">
-                    <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-12 animate-fade-in-up">Team Resources</h1>
-                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        ${resources.map(res => `
-                            <div class="bg-white rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 animate-fade-in-up">
-                                <h2 class="text-2xl font-bold text-gray-800 mb-2 flex items-center">${res.icon} ${res.title}</h2>
-                                <p class="text-gray-600 text-sm mb-4">${res.description}</p>
-                                <a href="#" class="text-pink-600 font-semibold flex items-center hover:underline transform active:scale-95 transition-transform duration-100">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-                                    View Document
-                                </a>
-                            </div>
-                        `).join('')}
-                    </div>
-                </section>
-            `;
-        }
-
         function renderTasks() {
-            return `
-                <section class="container mx-auto px-4 py-16">
-                    <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-12 animate-fade-in-up">Team Tasks</h1>
-                    <div class="bg-white rounded-3xl p-8 shadow-xl">
-                        <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mb-8">
-                            <input type="text" id="task-input" placeholder="Add a new task..." class="w-full md:w-auto flex-grow p-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-600">
-                            <input type="date" id="task-due-date" class="w-full md:w-auto p-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-600">
-                            <button onclick="addTask()" class="w-full md:w-auto bg-pink-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-pink-700 transition-colors duration-300 transform active:scale-95">
-                                Add Task
-                            </button>
-                        </div>
-                        <ul id="task-list" class="space-y-4">
-                            <!-- Dynamic tasks will be loaded here -->
-                        </ul>
+            const tasksList = document.getElementById('tasks-list');
+            tasksList.innerHTML = '';
+            tasks.sort((a, b) => new Date(a.due) - new Date(b.due));
+            tasks.forEach(task => {
+                const taskElement = document.createElement('li');
+                const isCompleted = task.completed;
+                const checkboxColor = isCompleted ? 'bg-teal-500' : 'bg-gray-200';
+                const textColor = isCompleted ? 'text-gray-400 line-through' : 'text-gray-800';
+                const checkedSVG = isCompleted ? `
+                    <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>` : '';
+                taskElement.className = 'flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200';
+                taskElement.innerHTML = `
+                    <div onclick="toggleTaskCompletion('${task.title}')" class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors duration-200 cursor-pointer ${checkboxColor} border-2 border-transparent">
+                        ${checkedSVG}
                     </div>
-                </section>
-            `;
-        }
-
-        window.addTask = async function() {
-            const userId = window.getUserId();
-            const db = window.getFirestore();
-            const input = document.getElementById('task-input');
-            const dateInput = document.getElementById('task-due-date');
-            const taskText = input.value.trim();
-            const dueDate = dateInput.value;
-
-            if (!taskText) {
-                showCustomAlert("Input Required", "Please enter a task.");
-                return;
-            }
-
-            try {
-                const tasksCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
-                await addDoc(tasksCollectionRef, {
-                    text: taskText,
-                    completed: false,
-                    createdAt: new Date(),
-                    dueDate: dueDate ? new Date(dueDate) : null,
-                    assignedBy: userId,
-                });
-                input.value = '';
-                dateInput.value = '';
-            } catch (error) {
-                console.error("Error adding document:", error);
-                showCustomAlert("Error", "Could not add task. Check the console for details.");
-            }
-        };
-
-        function setupTaskListener() {
-            const db = window.getFirestore();
-            const tasksList = document.getElementById('task-list');
-            const tasksCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
-            
-            if (!tasksList || !tasksCollectionRef) return;
-            
-            const tasksQuery = query(tasksCollectionRef);
-
-            onSnapshot(tasksQuery, (snapshot) => {
-                tasksList.innerHTML = '';
-                const tasks = [];
-                snapshot.forEach((doc) => {
-                    tasks.push({ id: doc.id, ...doc.data() });
-                });
-                tasks.sort((a, b) => {
-                    const aDate = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate() : new Date(0);
-                    const bDate = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate() : new Date(0);
-                    return bDate - aDate;
-                });
-
-                if (tasks.length === 0) {
-                    tasksList.innerHTML = '<li class="text-gray-500 text-center py-4">No tasks yet.</li>';
-                } else {
-                    tasks.forEach(task => {
-                        const isOverdue = !task.completed && task.dueDate && task.dueDate.toDate() < new Date();
-                        const li = document.createElement('li');
-                        li.className = `flex items-center justify-between p-4 rounded-xl shadow-sm border border-gray-200 ${task.completed ? 'bg-green-50' : (isOverdue ? 'bg-red-100' : 'bg-pink-50')}`;
-                        
-                        const dueDateText = task.dueDate ? `(Due: ${task.dueDate.toDate().toLocaleDateString()})` : '';
-
-                        li.innerHTML = `
-                            <div class="flex items-center space-x-3">
-                                <input type="checkbox" id="task-${task.id}" class="h-5 w-5 rounded-md text-pink-600 focus:ring-pink-500" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}', ${task.completed})">
-                                <div class="flex flex-col">
-                                    <label for="task-${task.id}" class="text-gray-800 font-medium ${task.completed ? 'line-through text-gray-500' : ''}">
-                                        ${task.text}
-                                    </label>
-                                    <span class="text-xs text-gray-500">${dueDateText}</span>
-                                </div>
-                            </div>
-                            <button onclick="deleteTask('${task.id}')" class="text-gray-400 hover:text-red-500 transition-colors transform active:scale-95">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                            </button>
-                        `;
-                        tasksList.appendChild(li);
-                    });
-                }
-            }, (error) => {
-                console.error("Error listening to tasks:", error);
+                    <div class="flex-grow">
+                        <h3 class="font-medium ${textColor}">${task.title}</h3>
+                        <p class="text-xs text-gray-500">Due: ${task.due}</p>
+                    </div>
+                `;
+                tasksList.appendChild(taskElement);
             });
         }
 
-        window.toggleTaskCompletion = async function(id, currentStatus) {
-            const db = window.getFirestore();
-            const taskRef = doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id);
-            try {
-                await updateDoc(taskRef, {
-                    completed: !currentStatus,
-                });
-            } catch (error) {
-                console.error("Error updating document:", error);
-                showCustomAlert("Error", "Could not update task. Check the console for details.");
+        function toggleTaskCompletion(taskTitle) {
+            const task = tasks.find(t => t.title === taskTitle);
+            if (task) {
+                task.completed = !task.completed;
+                renderTasks();
             }
-        };
+        }
+        
+        // --- Admin Page Functions ---
 
-        window.deleteTask = async function(id) {
-            const db = window.getFirestore();
-            const taskRef = doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id);
-            try {
-                await deleteDoc(taskRef);
-            } catch (error) {
-                console.error("Error deleting document:", error);
-                showCustomAlert("Error", "Could not delete task. Check the console for details.");
+        function updateProjectProgress(projectId, newProgress) {
+            const progressValue = parseInt(newProgress, 10);
+            if (!isNaN(progressValue) && progressValue >= 0 && progressValue <= 100) {
+                projects[projectId].progress = progressValue;
+                renderProjects(); // Re-render the dashboard projects to show the update
             }
-        };
+        }
+
+        function addAnnouncement() {
+            const newAnnouncementText = document.getElementById('new-announcement-text').value.trim();
+            if (newAnnouncementText) {
+                announcements.unshift({ text: newAnnouncementText, subtext: 'New announcement' });
+                document.getElementById('new-announcement-text').value = '';
+                renderAnnouncements(); // Re-render the dashboard announcements
+            }
+        }
+        
+        function addTask() {
+            const titleInput = document.getElementById('new-task-title');
+            const dateInput = document.getElementById('new-task-due-date');
+            const newTitle = titleInput.value.trim();
+            const newDate = dateInput.value;
+
+            if (newTitle && newDate) {
+                tasks.push({ title: newTitle, due: newDate, completed: false });
+                titleInput.value = '';
+                dateInput.value = '';
+                renderTasks();
+                setCurrentPage('dashboard');
+            }
+        }
+
+        // --- Calendar functions ---
 
         function renderCalendar() {
-            return `
-                <section class="container mx-auto px-4 py-16">
-                    <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-12 animate-fade-in-up">Team Calendar & Events</h1>
-                    <div class="bg-white rounded-3xl p-8 shadow-xl">
-                        <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mb-8">
-                            <input type="text" id="event-title-input" placeholder="Event title..." class="w-full p-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-600">
-                            <input type="date" id="event-date-input" class="w-full md:w-auto p-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-600">
-                            <button onclick="addEvent()" class="w-full md:w-auto bg-pink-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-pink-700 transition-colors duration-300 transform active:scale-95">
-                                Add Event
-                            </button>
-                        </div>
-                        <ul id="events-list" class="space-y-4">
-                            <!-- Dynamic events will be loaded here -->
-                        </ul>
+            const monthYearText = document.getElementById('current-month-year');
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
+            
+            const date = new Date(currentYear, currentMonth, 1);
+            monthYearText.textContent = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            
+            const firstDay = date.getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            for (let i = 0; i < firstDay; i++) {
+                calendarGrid.innerHTML += '<div></div>';
+            }
+            
+            const events = {
+                '2025-09-17': ['Team Meeting', 'Project Deadline'],
+                '2025-09-24': ['Marketing Event'],
+                '2025-09-29': ['Quarterly Review']
+            };
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                let eventsHtml = '';
+                if (events[dayDate]) {
+                    eventsHtml = events[dayDate].map(event => `<p class="text-pink-600 text-xs mt-1 truncate">${event}</p>`).join('');
+                }
+                const dayClass = events[dayDate] ? 'bg-pink-100 hover:bg-pink-200' : 'bg-gray-100 hover:bg-gray-200';
+                calendarGrid.innerHTML += `
+                    <div class="p-2 text-center rounded-xl transition-colors duration-200 ${dayClass}">
+                        <div class="font-semibold">${day}</div>
+                        ${eventsHtml}
                     </div>
-                </section>
-            `;
+                `;
+            }
         }
+        
+        // --- Message functions (placeholder) ---
+        const contacts = [
+            { id: 'jane', name: 'Jane Doe', status: 'Online', lastMessage: 'See you tomorrow!', avatar: 'https://placehold.co/40x40/5eead4/ffffff?text=J' },
+            { id: 'john', name: 'John Smith', status: 'Offline', lastMessage: 'Sounds good.', avatar: 'https://placehold.co/40x40/94a3b8/ffffff?text=J' },
+            { id: 'team', name: 'Marketing Team', status: 'Online', lastMessage: 'Great work, team!', avatar: 'https://placehold.co/40x40/a78bfa/ffffff?text=M' }
+        ];
 
-        window.addEvent = async function() {
-            const userId = window.getUserId();
-            const db = window.getFirestore();
-            const titleInput = document.getElementById('event-title-input');
-            const dateInput = document.getElementById('event-date-input');
-            const eventTitle = titleInput.value.trim();
-            const eventDate = dateInput.value;
-
-            if (!eventTitle || !eventDate) {
-                showCustomAlert("Input Required", "Please enter both a title and a date for the event.");
-                return;
-            }
-
-            try {
-                const eventsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'events');
-                await addDoc(eventsCollectionRef, {
-                    title: eventTitle,
-                    eventDate: new Date(eventDate),
-                    createdAt: new Date(),
-                    createdBy: userId,
-                });
-                titleInput.value = '';
-                dateInput.value = '';
-            } catch (error) {
-                console.error("Error adding document:", error);
-                showCustomAlert("Error", "Could not add event. Check the console for details.");
-            }
+        const messages = {
+            jane: [
+                { sender: 'jane', text: 'Hey, did you finish the report?' },
+                { sender: 'me', text: 'Almost! Just putting the final touches on it.' },
+                { sender: 'jane', text: 'Awesome, no rush. Let me know if you need any help!' },
+                { sender: 'me', text: 'Thanks! I appreciate that.' },
+                { sender: 'jane', text: 'See you tomorrow!' }
+            ],
+            john: [
+                { sender: 'john', text: 'Hey, I had a question about the project scope.' },
+                { sender: 'me', text: 'What’s up?' },
+                { sender: 'john', text: 'Never mind, I figured it out. Sounds good.' }
+            ],
+            team: [
+                { sender: 'team', text: 'Reminder: Quarterly review meeting is at 2 PM today.' },
+                { sender: 'me', text: 'Got it. See you all there!' },
+                { sender: 'team', text: 'Great work, team!' }
+            ]
         };
 
-        function setupCalendarListener() {
-            const db = window.getFirestore();
-            const eventsList = document.getElementById('events-list');
-            const eventsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'events');
-            
-            if (!eventsList || !eventsCollectionRef) return;
-            
-            const eventsQuery = query(eventsCollectionRef);
-
-            onSnapshot(eventsQuery, (snapshot) => {
-                eventsList.innerHTML = '';
-                const events = [];
-                snapshot.forEach((doc) => {
-                    events.push({ id: doc.id, ...doc.data() });
-                });
-                events.sort((a, b) => {
-                    const aDate = a.eventDate && a.eventDate.toDate ? a.eventDate.toDate() : new Date(0);
-                    const bDate = b.eventDate && b.eventDate.toDate ? b.eventDate.toDate() : new Date(0);
-                    return aDate - bDate;
-                });
-
-                if (events.length === 0) {
-                    eventsList.innerHTML = '<li class="text-gray-500 text-center py-4">No upcoming events.</li>';
-                } else {
-                    events.forEach(event => {
-                        const isPast = event.eventDate && event.eventDate.toDate() < new Date();
-                        const li = document.createElement('li');
-                        li.className = `flex items-center justify-between p-4 rounded-xl shadow-sm border border-gray-200 ${isPast ? 'bg-gray-200' : 'bg-pink-50'}`;
-                        
-                        const formattedDate = event.eventDate ? event.eventDate.toDate().toLocaleDateString() : 'No Date';
-
-                        li.innerHTML = `
-                            <div class="flex flex-col">
-                                <span class="font-bold text-gray-800">${event.title}</span>
-                                <span class="text-sm text-gray-500">${formattedDate}</span>
-                            </div>
-                            <button onclick="deleteEvent('${event.id}')" class="text-gray-400 hover:text-red-500 transition-colors transform active:scale-95">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                            </button>
-                        `;
-                        eventsList.appendChild(li);
-                    });
-                }
-            }, (error) => {
-                console.error("Error listening to events:", error);
-            });
-        }
-
-        window.deleteEvent = async function(id) {
-            const db = window.getFirestore();
-            const eventRef = doc(db, 'artifacts', appId, 'public', 'data', 'events', id);
-            try {
-                await deleteDoc(eventRef);
-            } catch (error) {
-                console.error("Error deleting document:", error);
-                showCustomAlert("Error", "Could not delete event. Check the console for details.");
-            }
-        };
-
-
-        function renderChat() {
-            return `
-                <section class="container mx-auto px-4 py-8 md:py-16 flex flex-col flex-1">
-                    <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 animate-fade-in-up">Team Chat</h1>
-                    <div class="bg-white rounded-3xl p-4 md:p-8 shadow-xl flex flex-col flex-1 max-h-[calc(100vh-200px)]">
-                        <!-- Chat Header and User List -->
-                        <div id="chat-header" class="mb-4">
-                            <div class="flex items-center justify-between">
-                                <h2 class="text-2xl font-bold text-gray-800" id="chat-title">Public Chat</h2>
-                                <button id="back-to-public-chat" class="hidden text-pink-600 font-semibold text-sm flex items-center mt-2 hover:underline" onclick="setChatPartner(null)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-                                    Back to Public
-                                </button>
-                            </div>
-                            <div id="chat-users" class="flex flex-wrap gap-2 p-2 rounded-xl bg-gray-100 mt-4 overflow-x-auto">
-                                <!-- Dynamic user list will be loaded here -->
-                            </div>
-                        </div>
-
-                        <!-- Chat Messages Container -->
-                        <div id="chat-messages" class="flex-grow overflow-y-auto space-y-4 p-4 rounded-xl bg-gray-50 mb-4 border border-gray-200">
-                            <!-- Dynamic chat messages will be loaded here -->
-                        </div>
-                        
-                        <!-- Message Input Form -->
-                        <form onsubmit="event.preventDefault(); sendMessage();" class="flex items-center space-x-4 flex-shrink-0">
-                            <input type="text" id="chat-input" placeholder="Type a message..." class="flex-grow p-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-600">
-                            <button type="submit" class="bg-pink-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-pink-700 transition-colors duration-300 transform active:scale-95 flex-shrink-0">
-                                Send
-                            </button>
-                        </form>
+        function renderContacts() {
+            const contactList = document.getElementById('contact-list');
+            contactList.innerHTML = '';
+            contacts.forEach(contact => {
+                const contactElement = document.createElement('li');
+                contactElement.className = 'flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors duration-200 chat-user-button';
+                contactElement.onclick = () => renderChatMessages(contact.id);
+                contactElement.innerHTML = `
+                    <div class="relative">
+                        <img class="h-10 w-10 rounded-full" src="${contact.avatar}" alt="${contact.name} Avatar">
+                        <span class="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-white ${contact.status === 'Online' ? 'bg-green-500' : 'bg-gray-400'}"></span>
                     </div>
-                </section>
-            `;
+                    <div>
+                        <h3 class="font-semibold text-gray-800">${contact.name}</h3>
+                        <p class="text-sm text-gray-500 truncate">${contact.lastMessage}</p>
+                    </div>
+                `;
+                contactList.appendChild(contactElement);
+            });
         }
 
-        window.setChatPartner = function(partnerId) {
-            chatState.currentChatPartnerId = partnerId;
-            setupChatListener();
-        };
+        function renderChatMessages(contactId) {
+            const chatMessagesContainer = document.getElementById('chat-messages');
+            chatMessagesContainer.innerHTML = '';
+            const chatHeader = document.getElementById('chat-header');
+            const contact = contacts.find(c => c.id === contactId);
 
-        window.sendMessage = async function() {
-            const userId = window.getUserId();
-            const db = window.getFirestore();
-            const input = document.getElementById('chat-input');
-            const messageText = input.value.trim();
+            document.getElementById('chat-avatar').src = contact.avatar;
+            document.getElementById('chat-name').textContent = contact.name;
+            document.getElementById('chat-status').textContent = contact.status;
+            document.getElementById('chat-status').className = `text-sm ${contact.status === 'Online' ? 'text-green-500' : 'text-gray-400'}`;
 
-            if (!messageText) {
-                return;
-            }
-
-            try {
-                if (chatState.currentChatPartnerId) {
-                    // Private chat message
-                    const chatPartnerId = chatState.currentChatPartnerId;
-                    const participants = [userId, chatPartnerId].sort();
-                    const chatId = participants.join('_');
-                    const privateMessagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'private_chats', chatId, 'messages');
-                    
-                    await addDoc(privateMessagesRef, {
-                        text: messageText,
-                        senderId: userId,
-                        createdAt: new Date()
-                    });
-                } else {
-                    // Public chat message
-                    const publicMessagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'chat');
-                    await addDoc(publicMessagesRef, {
-                        text: messageText,
-                        senderId: userId,
-                        createdAt: new Date()
-                    });
-                }
-                input.value = '';
-            } catch (error) {
-                console.error("Error sending message:", error);
-                showCustomAlert("Error", "Could not send message. Check the console for details.");
-            }
-        };
-
-        function setupChatListener() {
-            const db = window.getFirestore();
-            const messagesContainer = document.getElementById('chat-messages');
-            const usersContainer = document.getElementById('chat-users');
-            const chatTitle = document.getElementById('chat-title');
-            const backButton = document.getElementById('back-to-public-chat');
-
-            if (!messagesContainer || !usersContainer) return;
-            
-            // Render user list
-            const publicMessagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'chat');
-            const publicQuery = query(publicMessagesRef);
-            onSnapshot(publicQuery, (snapshot) => {
-                const uniqueUsers = new Set();
-                snapshot.forEach(doc => {
-                    uniqueUsers.add(doc.data().senderId);
-                });
-                
-                usersContainer.innerHTML = '';
-                uniqueUsers.forEach(id => {
-                    if (id !== 'System' && id !== userId) {
-                        const avatarChar = id.substring(0, 1).toUpperCase();
-                        const avatarColor = 'pink';
-                        const userButton = document.createElement('div');
-                        userButton.className = 'chat-user-button flex-shrink-0';
-                        userButton.innerHTML = `
-                            <button onclick="setChatPartner('${id}')" class="flex flex-col items-center">
-                                <img src="https://placehold.co/40x40/${avatarColor}/white?text=${avatarChar}" alt="Avatar" class="rounded-full w-10 h-10 ring-2 ring-transparent transition-all duration-200 hover:ring-pink-600">
-                                <span class="text-xs mt-1 text-gray-600">${id.substring(0, 4)}...</span>
-                            </button>
-                        `;
-                        usersContainer.appendChild(userButton);
-                    }
-                });
+            messages[contactId].forEach(msg => {
+                const isMe = msg.sender === 'me';
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+                messageWrapper.innerHTML = `
+                    <div class="max-w-[75%] p-4 rounded-3xl ${isMe ? 'bg-pink-200 text-gray-800' : 'bg-gray-200 text-gray-800'}">
+                        <p class="text-sm">${msg.text}</p>
+                    </div>
+                `;
+                chatMessagesContainer.appendChild(messageWrapper);
             });
-
-            // Listen for messages based on chat state
-            let chatRef;
-            if (chatState.currentChatPartnerId) {
-                chatTitle.textContent = `Chatting with ${chatState.currentChatPartnerId.substring(0, 8)}...`;
-                backButton.classList.remove('hidden');
-                const participants = [userId, chatState.currentChatPartnerId].sort();
-                const chatId = participants.join('_');
-                chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'private_chats', chatId, 'messages');
-            } else {
-                chatTitle.textContent = 'Public Chat';
-                backButton.classList.add('hidden');
-                chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'chat');
-            }
-
-            const messagesQuery = query(chatRef);
-            
-            onSnapshot(messagesQuery, (snapshot) => {
-                const messages = [];
-                snapshot.forEach((doc) => {
-                    messages.push({ id: doc.id, ...doc.data() });
-                });
-                
-                messages.sort((a, b) => {
-                    const aDate = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate() : new Date(0);
-                    const bDate = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate() : new Date(0);
-                    return aDate - bDate;
-                });
-
-                messagesContainer.innerHTML = '';
-
-                if (messages.length === 0) {
-                    messagesContainer.innerHTML = '<div class="text-center text-gray-500 italic">Start the conversation!</div>';
-                } else {
-                    messages.forEach(msg => {
-                        const isSender = msg.senderId === userId;
-                        const senderName = isSender ? 'You' : msg.senderId.substring(0, 8) + '...';
-                        const avatarChar = isSender ? 'Y' : msg.senderId.substring(0, 1).toUpperCase();
-                        const avatarColor = isSender ? 'gray' : 'pink';
-                        const messageWrapper = document.createElement('div');
-                        messageWrapper.className = `flex items-start space-x-3 ${isSender ? 'ml-auto flex-row-reverse space-x-reverse' : ''}`;
-                        messageWrapper.innerHTML = `
-                            <img src="https://placehold.co/40x40/${avatarColor}/white?text=${avatarChar}" alt="Avatar" class="rounded-full w-10 h-10 flex-shrink-0">
-                            <div class="p-3 rounded-2xl max-w-[80%] shadow-sm ${isSender ? 'bg-pink-200 text-gray-800' : 'bg-gray-200 text-gray-800'}">
-                                <p class="font-semibold text-xs mb-1 ${isSender ? 'text-right' : ''}">${senderName}</p>
-                                <p class="text-sm ${isSender ? 'text-right' : ''}">${msg.text}</p>
-                            </div>
-                        `;
-                        messagesContainer.appendChild(messageWrapper);
-                    });
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                }
-            }, (error) => {
-                console.error("Error listening to messages:", error);
-            });
+            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
         }
 
         // Event listeners
         window.onload = function() {
-            window.firebaseInit();
+            setCurrentPage('dashboard');
             document.getElementById('mobile-menu-button').addEventListener('click', () => {
                 const mobileMenu = document.getElementById('mobile-menu');
                 const menuIcon = document.getElementById('menu-icon');
@@ -1158,8 +728,31 @@
                     menuIcon.classList.add('hidden');
                     closeIcon.classList.remove('hidden');
                 } else {
-                    window.closeMobileMenu();
+                    closeMobileMenu();
                 }
+            });
+
+            document.getElementById('prev-month-btn').addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                renderCalendar();
+            });
+
+            document.getElementById('next-month-btn').addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                renderCalendar();
+            });
+
+            document.getElementById('send-message-btn').addEventListener('click', () => {
+                const input = document.getElementById('message-input');
+                input.value = ''; // Just clear the input, since it's a placeholder
             });
         };
     </script>
